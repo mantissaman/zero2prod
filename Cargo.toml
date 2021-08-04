@@ -25,8 +25,6 @@ tracing-bunyan-formatter = "0.2.4"
 tracing-log = "0.1.2"
 tracing-actix-web = "0.4.0-beta.8"
 
-[target.'cfg(all(target_env = "musl", target_pointer_width = "64"))'.dependencies]
-jemallocator = "0.3.2"
 
 [dependencies.sqlx]
 version = "0.5.5"
