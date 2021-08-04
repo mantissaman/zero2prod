@@ -1,10 +1,8 @@
 use actix_web::{web,HttpResponse,  Responder};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize};
 use sqlx::PgPool;
-
 use chrono::Utc;
 use uuid::Uuid;
-
 
 
 #[derive(Deserialize)]
@@ -13,10 +11,35 @@ pub struct FormData{
     name: String
 }
 
-pub async fn subscribe(form: web::Form<FormData>, pool:web::Data<PgPool>) -> impl Responder {
-    let request_id= Uuid::new_v4();
-    tracing::info!("request_id {} - Adding '{}' '{}' as a new subscriber", request_id, form.email, form.name);
-    match sqlx::query!(
+#[tracing::instrument(
+    name= "Adding a new Subscriber",
+    skip(form, pool),
+    fields(
+        subscriber_email = %form.email,
+        subscriber_name = %form.name
+    )
+)]
+pub async fn subscribe(
+    form: web::Form<FormData>,
+    pool:web::Data<PgPool>
+) -> impl Responder {
+
+    match insert_subscriber(&form, &pool).await
+    {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish()
+    }
+}
+
+#[tracing::instrument(
+    name= "Saving new Subscriber details in the database",
+    skip(form, pool)
+)]
+pub async fn insert_subscriber(
+    form: &FormData,
+    pool: &PgPool
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
         r#"
         INSERT INTO subscriptions(id, email, name, subscribed_at)
         VALUES($1, $2, $3, $4)
@@ -26,16 +49,11 @@ pub async fn subscribe(form: web::Form<FormData>, pool:web::Data<PgPool>) -> imp
         form.name,
         Utc::now()
     )
-        .execute(pool.get_ref())
+        .execute(pool)
         .await
-    {
-        Ok(_) => {
-            tracing::info!("request_id {} - New subscriber details have been saved", request_id);
-            HttpResponse::Ok().finish()
-        },
-        Err(e) => {
-            tracing::error!("request_id {} -Failed to execute query: {:?}", request_id, e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+        .map_err(|e| {
+            tracing::error!("Failed to execute query: {:?}", e); // this is outside query span
+            e
+        })?;
+    Ok(())
 }
