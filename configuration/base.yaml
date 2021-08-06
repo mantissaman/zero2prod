@@ -6,3 +6,7 @@ database:
   username: "postgres"
   password: "pa55word"
   database_name: "newsletter"
+email_client:
+  base_url: "localhost"
+  sender_email: "dev@cirovindi.co"
+  authorization_token: "BOMB"

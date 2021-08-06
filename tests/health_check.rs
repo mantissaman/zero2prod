@@ -5,6 +5,7 @@ use zero2prod::telemetry::{get_subscriber, init_subscriber};
 use sqlx::{PgPool, PgConnection, Connection, Executor};
 use uuid::Uuid;
 use once_cell::sync::Lazy;
+use zero2prod::email_client::EmailClient;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -41,7 +42,15 @@ async fn  spawn_app() -> TestApp {
     let connection_pool = configure_database(&configuration.database)
         .await;
 
-    let server =  run(listener, connection_pool.clone()).expect("Failed to bin address");
+    let sender_email = configuration.email_client.sender()
+        .expect("Invalid sender email address");
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token
+    );
+
+    let server =  run(listener, connection_pool.clone(), email_client).expect("Failed to bin address");
 
     // launch server as background task
     let _ = tokio::spawn(server);

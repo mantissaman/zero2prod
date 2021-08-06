@@ -2,28 +2,22 @@ use std::convert::{TryFrom, TryInto};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::PgConnectOptions;
 use sqlx::postgres::PgSslMode;
+use crate::domain::SubscriberEmail;
 
 #[derive(serde::Deserialize)]
 pub struct Settings{
     pub database: DatabaseSettings,
-    pub application: ApplicationSettings
+    pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings
 }
+
 #[derive(serde::Deserialize)]
 pub struct ApplicationSettings{
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String
 }
-#[derive(serde::Deserialize)]
-pub struct DatabaseSettings {
-    pub username: String,
-    pub password: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub port: u16,
-    pub host: String,
-    pub database_name: String,
-    pub require_ssl: bool
-}
+
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let mut settings = config::Config::default();
@@ -69,6 +63,17 @@ impl TryFrom<String> for Environment {
     }
 }
 
+#[derive(serde::Deserialize)]
+pub struct DatabaseSettings {
+    pub username: String,
+    pub password: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+    pub host: String,
+    pub database_name: String,
+    pub require_ssl: bool
+}
+
 impl DatabaseSettings {
     pub fn without_db(&self) -> PgConnectOptions {
         let ssl_mode = if self.require_ssl {
@@ -86,5 +91,17 @@ impl DatabaseSettings {
     // Renamed from `connection_string`
     pub fn with_db(&self) -> PgConnectOptions {
         self.without_db().database(&self.database_name)
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct EmailClientSettings{
+    pub base_url: String,
+    pub sender_email: String,
+    pub authorization_token: String
+}
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
     }
 }
