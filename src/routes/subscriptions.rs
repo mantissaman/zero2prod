@@ -52,7 +52,7 @@ pub async fn subscribe(
     }
 
 
-    if send_confirmation_email(&email_client, new_subscriber, &base_url.0)
+    if send_confirmation_email(&email_client, new_subscriber, &base_url.into_inner().0)
         .await
         .is_err()
     {
