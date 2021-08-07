@@ -3,6 +3,7 @@ use reqwest::Client;
 use serde::{Serialize};
 
 
+#[derive(Debug)]
 pub struct EmailClient{
     http_client: Client,
     base_url: String,
@@ -11,22 +12,22 @@ pub struct EmailClient{
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct SendEmailRequest{
     from: EmailAddress,
     personalizations: Vec<EmailRecipient>,
     subject: String,
     content: Vec<EmailContent>
 }
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct EmailRecipient{
     to: Vec<EmailAddress>
 }
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct EmailAddress {
     email: String
 }
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct EmailContent{
     #[serde(rename="type")]
     content_type: String,
